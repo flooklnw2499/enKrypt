@@ -10,14 +10,15 @@
 
       <h2>Your {{ network.name_long }} address</h2>
       <p>
-        You can send {{ network.currencyName }} to this address using
-        {{ network.name_long }} network.
+        {{ depositCopy }}
       </p>
 
       <div class="deposit__code">
         <qrcode-vue
           :value="
-            network.provider + ':' + network.displayAddress(account.address)
+            $props.network?.provider == ProviderName.kadena
+              ? network.displayAddress(account.address)
+              : network.provider + ':' + network.displayAddress(account.address)
           "
           :size="150"
           level="H"
@@ -53,19 +54,20 @@
 </template>
 
 <script setup lang="ts">
-import { PropType, ref } from "vue";
-import CloseIcon from "@action/icons/common/close-icon.vue";
-import CopyIcon from "@action/icons/header/copy_icon.vue";
-import { NodeType } from "@/types/provider";
-import QrcodeVue from "qrcode.vue";
-import { EnkryptAccount } from "@enkryptcom/types";
-import Notification from "@action/components/notification/index.vue";
-
+import { PropType, ref, onMounted, computed } from 'vue';
+import CloseIcon from '@action/icons/common/close-icon.vue';
+import CopyIcon from '@action/icons/header/copy_icon.vue';
+import QrcodeVue from 'qrcode.vue';
+import { EnkryptAccount } from '@enkryptcom/types';
+import Notification from '@action/components/notification/index.vue';
+import { ProviderName } from '@/types/provider';
+import { BaseNetwork, SubNetworkOptions } from '@/types/base-network';
+import DomainState from '@/libs/domain-state';
 const isCopied = ref(false);
-
-defineProps({
+const subNetwork = ref<SubNetworkOptions | null>(null);
+const props = defineProps({
   network: {
-    type: Object as PropType<NodeType>,
+    type: Object as PropType<BaseNetwork>,
     default: () => ({}),
   },
   account: {
@@ -80,7 +82,7 @@ defineProps({
   },
 });
 defineEmits<{
-  (e: "toggle:deposit"): void;
+  (e: 'toggle:deposit'): void;
 }>();
 const copy = (address: string) => {
   navigator.clipboard.writeText(address);
@@ -90,10 +92,27 @@ const copy = (address: string) => {
 const toggleNotification = () => {
   isCopied.value = !isCopied.value;
 };
+
+onMounted(() => {
+  if (props.network.subNetworks) {
+    const domainState = new DomainState();
+    domainState.getSelectedSubNetWork().then(id => {
+      const subnet = props.network.subNetworks?.find(net => net.id === id);
+      if (subnet) subNetwork.value = subnet;
+    });
+  }
+});
+
+const depositCopy = computed(() => {
+  if (subNetwork.value !== null)
+    return `You can send ${props.network.currencyNameLong} to this address in ${subNetwork.value.name} using ${props.network.name_long} network.`;
+  else
+    return `You can send ${props.network.currencyNameLong} to this address using ${props.network.name_long} network.`;
+});
 </script>
 
 <style lang="less" scoped>
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 
 .deposit {
   width: 800px;
@@ -124,9 +143,9 @@ const toggleNotification = () => {
 
   &__wrap {
     width: 360px;
-    height: 420px;
     background: @white;
-    box-shadow: 0px 0.5px 5px rgba(0, 0, 0, 0.039),
+    box-shadow:
+      0px 0.5px 5px rgba(0, 0, 0, 0.039),
       0px 3.75px 11px rgba(0, 0, 0, 0.19);
     border-radius: 12px;
     position: relative;
@@ -136,7 +155,9 @@ const toggleNotification = () => {
     box-sizing: border-box;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s, visibility 0s ease-in-out 0.3s;
+    transition:
+      opacity 0.3s,
+      visibility 0s ease-in-out 0.3s;
 
     &.show {
       opacity: 1;
@@ -190,7 +211,8 @@ const toggleNotification = () => {
     width: 176px;
     height: 176px;
     background: @white;
-    box-shadow: 0px 0.25px 1px rgba(0, 0, 0, 0.039),
+    box-shadow:
+      0px 0.25px 1px rgba(0, 0, 0, 0.039),
       0px 0.85px 3px rgba(0, 0, 0, 0.19);
     border-radius: 16px;
     margin: 0 0 24px 71px;

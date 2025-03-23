@@ -1,16 +1,24 @@
 import {
   stripHexPrefix,
-  bytesToHex,
   hexToBytes,
   keccak256,
   utf8ToHex,
   numberToHex,
 } from "web3-utils";
-import { bigIntToBuffer, bigIntToHex } from "@ethereumjs/util";
+import { bigIntToBytes, bigIntToHex } from "@ethereumjs/util";
 import { encodeAddress as polkadotEncodeAddress } from "@polkadot/util-crypto";
 import { encrypt, decrypt } from "./encrypt";
 import MemoryStorage from "./memory-storage";
 import { fromBase, toBase, isValidDecimals } from "./units";
+import { DebugLogger } from "./debug-logger";
+import {
+  naclDecodeHex,
+  encryptedDataStringToJson,
+  naclDecrypt,
+  naclEncrypt,
+  NACL_VERSION,
+} from "./nacl-encrypt-decrypt";
+import { generateRandomNameWithSeed } from "./random-names";
 
 const bufferToHex = (buf: Buffer | Uint8Array, nozerox = false): string =>
   nozerox
@@ -21,7 +29,7 @@ const hexToBuffer = (hex: string): Buffer =>
     stripHexPrefix(hex).length % 2 === 1
       ? `0${stripHexPrefix(hex)}`
       : stripHexPrefix(hex),
-    "hex"
+    "hex",
   );
 
 export {
@@ -29,7 +37,6 @@ export {
   utf8ToHex,
   bufferToHex,
   hexToBuffer,
-  bytesToHex,
   hexToBytes,
   encrypt,
   decrypt,
@@ -37,9 +44,16 @@ export {
   keccak256,
   polkadotEncodeAddress,
   numberToHex,
-  bigIntToBuffer,
+  bigIntToBytes,
   bigIntToHex,
   fromBase,
   toBase,
   isValidDecimals,
+  DebugLogger,
+  naclDecodeHex,
+  encryptedDataStringToJson,
+  naclDecrypt,
+  naclEncrypt,
+  NACL_VERSION,
+  generateRandomNameWithSeed,
 };

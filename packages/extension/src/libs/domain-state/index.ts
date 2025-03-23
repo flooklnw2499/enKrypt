@@ -1,11 +1,11 @@
 import {
   InternalStorageNamespace,
   ProviderRequestOptions,
-} from "@/types/provider";
-import Browser from "webextension-polyfill";
-import BrowserStorage from "../common/browser-storage";
-import tabInfo from "../utils/tab-info";
-import { IState, StorageKeys } from "./types";
+} from '@/types/provider';
+import Browser from 'webextension-polyfill';
+import BrowserStorage from '../common/browser-storage';
+import tabInfo from '../utils/tab-info';
+import { IState, StorageKeys } from './types';
 class DomainState {
   #storage: BrowserStorage;
   constructor() {
@@ -19,6 +19,16 @@ class DomainState {
   async getSelectedNetWork(): Promise<string | null> {
     const state = await this.getState();
     if (state.selectedNetwork) return state.selectedNetwork;
+    return null;
+  }
+  async setSelectedSubNetwork(id: string): Promise<void> {
+    const state = await this.getState();
+    state.selectedSubNetworkId = id;
+    await this.setState(state);
+  }
+  async getSelectedSubNetWork(): Promise<string | null> {
+    const state = await this.getState();
+    if (state.selectedSubNetworkId) return state.selectedSubNetworkId;
     return null;
   }
   async setSelectedAddress(address: string): Promise<void> {
@@ -52,15 +62,15 @@ class DomainState {
   async getCurrentTabId(): Promise<number> {
     return Browser.tabs
       .query({ active: true, currentWindow: true })
-      .then((tabs) => tabs[0].id as number);
+      .then(tabs => tabs[0].id as number);
   }
   async getCurrentTabInfo(): Promise<ProviderRequestOptions> {
     return Browser.tabs
       .query({ active: true, currentWindow: true })
-      .then((tabs) => tabInfo(tabs[0]));
+      .then(tabs => tabInfo(tabs[0]));
   }
   async getCurrentDomain(): Promise<string> {
-    return this.getCurrentTabInfo().then((info) => info.domain);
+    return this.getCurrentTabInfo().then(info => info.domain);
   }
   async setState(state: IState): Promise<void> {
     const domain = await this.getCurrentDomain();
@@ -81,7 +91,7 @@ class DomainState {
   }
   async getAllStates(): Promise<Record<string, IState>> {
     const allStates: Record<string, IState> = await this.#storage.get(
-      StorageKeys.providerInfo
+      StorageKeys.providerInfo,
     );
     if (!allStates) return {};
     return allStates;

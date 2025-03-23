@@ -47,6 +47,8 @@ enum SignerType {
   sr25519 = "sr25519", // polkadot
   secp256k1 = "secp256k1", // ethereum
   secp256k1btc = "secp256k1-btc", // bitcoin
+  ed25519kda = "ed25519-kda", // kadena
+  ed25519sol = "ed25519-sol", // solana
 }
 
 interface KeyRecordAdd {
@@ -69,6 +71,7 @@ interface HWwalletOptions {
 
 interface EnkryptAccount extends KeyRecord {
   isHardware: boolean;
+  isTestWallet?: boolean;
   HWOptions?: HWwalletOptions;
 }
 
@@ -92,18 +95,18 @@ interface SignerInterface {
   sign: (
     msgHash: string,
     keypair: KeyPair,
-    options?: unknown
+    options?: unknown,
   ) => Promise<string>;
   verify: (
     msgHash: string,
     sig: string,
     publicKey: string,
-    options?: unknown
+    options?: unknown,
   ) => Promise<boolean>;
   generate: (
     mnemonic: string,
     path: string,
-    options?: unknown
+    options?: unknown,
   ) => Promise<KeyPair>;
 }
 const Errors = {
@@ -121,7 +124,7 @@ interface EncryptedData {
 }
 interface BrowserStorageArea {
   get(
-    keys?: null | string | string[] | Record<string, any>
+    keys?: null | string | string[] | Record<string, any>,
   ): Promise<Record<string, any>>;
   set(items: Record<string, any>): Promise<void>;
   remove(keys: string | string[]): Promise<void>;
@@ -151,7 +154,7 @@ type NextFunction = () => void;
 type MiddlewareFunction = (
   payload: RPCRequestType,
   response: CallbackFunction,
-  next: NextFunction
+  next: NextFunction,
 ) => void;
 
 interface OnMessageResponse {

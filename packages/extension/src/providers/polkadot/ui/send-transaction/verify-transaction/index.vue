@@ -12,6 +12,13 @@
           </a>
         </div>
         <hardware-wallet-msg :wallet-type="account?.walletType" />
+        <p
+          class="verify-transaction__description"
+          style="color: red"
+          :class="{ popup: isPopup }"
+        >
+          {{ errorMsg }}
+        </p>
         <p class="verify-transaction__description" :class="{ popup: isPopup }">
           Double check the information and confirm transaction
         </p>
@@ -32,7 +39,6 @@
           />
           <verify-transaction-amount :token="txData.toToken" />
           <verify-transaction-fee :fee="txData.txFee" />
-          {{ errorMsg }}
         </div>
       </custom-scrollbar>
 
@@ -71,33 +77,35 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeMount, ref, ComponentPublicInstance } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import CloseIcon from "@action/icons/common/close-icon.vue";
-import BaseButton from "@action/components/base-button/index.vue";
-import VerifyTransactionNetwork from "@/providers/common/ui/verify-transaction/verify-transaction-network.vue";
-import VerifyTransactionAccount from "@/providers/common/ui/verify-transaction/verify-transaction-account.vue";
-import VerifyTransactionAmount from "@/providers/common/ui/verify-transaction/verify-transaction-amount.vue";
-import VerifyTransactionFee from "@/providers/common/ui/verify-transaction/verify-transaction-fee.vue";
-import HardwareWalletMsg from "@/providers/common/ui/verify-transaction/hardware-wallet-msg.vue";
-import SendProcess from "@action/views/send-process/index.vue";
-import PublicKeyRing from "@/libs/keyring/public-keyring";
-import { getCurrentContext } from "@/libs/messenger/extension";
-import { VerifyTransactionParams } from "@/providers/polkadot/ui/types";
-import { ApiPromise } from "@polkadot/api";
-import { u8aToHex } from "@polkadot/util";
-import type { SignerResult } from "@polkadot/api/types";
+import { onBeforeMount, ref, ComponentPublicInstance } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import CloseIcon from '@action/icons/common/close-icon.vue';
+import BaseButton from '@action/components/base-button/index.vue';
+import VerifyTransactionNetwork from '@/providers/common/ui/verify-transaction/verify-transaction-network.vue';
+import VerifyTransactionAccount from '@/providers/common/ui/verify-transaction/verify-transaction-account.vue';
+import VerifyTransactionAmount from '@/providers/common/ui/verify-transaction/verify-transaction-amount.vue';
+import VerifyTransactionFee from '@/providers/common/ui/verify-transaction/verify-transaction-fee.vue';
+import HardwareWalletMsg from '@/providers/common/ui/verify-transaction/hardware-wallet-msg.vue';
+import SendProcess from '@action/views/send-process/index.vue';
+import PublicKeyRing from '@/libs/keyring/public-keyring';
+import { getCurrentContext } from '@/libs/messenger/extension';
+import { VerifyTransactionParams } from '@/providers/polkadot/ui/types';
+import { ApiPromise } from '@polkadot/api';
+import { u8aToHex } from '@polkadot/util';
+import type { SignerResult } from '@polkadot/api/types';
 import {
   DEFAULT_SUBSTRATE_NETWORK,
   getNetworkByName,
-} from "@/libs/utils/networks";
-import { TypeRegistry } from "@polkadot/types";
-import { TransactionSigner } from "../../libs/signer";
-import { Activity, ActivityStatus, ActivityType } from "@/types/activity";
-import ActivityState from "@/libs/activity-state";
-import { EnkryptAccount } from "@enkryptcom/types";
-import CustomScrollbar from "@action/components/custom-scrollbar/index.vue";
-import { BaseNetwork } from "@/types/base-network";
+} from '@/libs/utils/networks';
+import { TypeRegistry } from '@polkadot/types';
+import { TransactionSigner } from '../../libs/signer';
+import { Activity, ActivityStatus, ActivityType } from '@/types/activity';
+import ActivityState from '@/libs/activity-state';
+import { EnkryptAccount } from '@enkryptcom/types';
+import CustomScrollbar from '@action/components/custom-scrollbar/index.vue';
+import { BaseNetwork } from '@/types/base-network';
+import { trackSendEvents } from '@/libs/metrics';
+import { SendEventType } from '@/libs/metrics/types';
 
 const isSendDone = ref(false);
 const account = ref<EnkryptAccount>();
@@ -106,11 +114,11 @@ const route = useRoute();
 const router = useRouter();
 const selectedNetwork: string = route.query.id as string;
 const txData: VerifyTransactionParams = JSON.parse(
-  Buffer.from(route.query.txData as string, "base64").toString("utf8")
+  Buffer.from(route.query.txData as string, 'base64').toString('utf8'),
 );
-const errorMsg = ref("");
+const errorMsg = ref('');
 const isProcessing = ref(false);
-const isPopup: boolean = getCurrentContext() === "new-window";
+const isPopup: boolean = getCurrentContext() === 'new-window';
 const isWindowPopup = ref(false);
 const verifyScrollRef = ref<ComponentPublicInstance<HTMLElement>>();
 defineExpose({ verifyScrollRef });
@@ -118,11 +126,15 @@ defineExpose({ verifyScrollRef });
 const network = ref<BaseNetwork>(DEFAULT_SUBSTRATE_NETWORK);
 onBeforeMount(async () => {
   network.value = (await getNetworkByName(selectedNetwork))!;
+  trackSendEvents(SendEventType.SendVerify, { network: network.value.name });
   account.value = await KeyRing.getAccount(txData.fromAddress);
   isWindowPopup.value = account.value.isHardware;
 });
 const close = () => {
-  if (getCurrentContext() === "popup") {
+  trackSendEvents(SendEventType.SendDecline, {
+    network: network.value.name,
+  });
+  if (getCurrentContext() === 'popup') {
     router.go(-1);
   } else {
     window.close();
@@ -131,24 +143,25 @@ const close = () => {
 
 const sendAction = async () => {
   isProcessing.value = true;
+  trackSendEvents(SendEventType.SendApprove, {
+    network: network.value.name,
+  });
   const api = await network.value.api();
-
   const tx = (api.api as ApiPromise).tx(txData.TransactionData.data);
-
   try {
     const signedTx = await tx.signAsync(account.value!.address, {
       signer: {
         signPayload: (signPayload): Promise<SignerResult> => {
           const registry = new TypeRegistry();
           registry.setSignedExtensions(signPayload.signedExtensions);
-          const extType = registry.createType("ExtrinsicPayload", signPayload, {
+          const extType = registry.createType('ExtrinsicPayload', signPayload, {
             version: signPayload.version,
           });
           return TransactionSigner({
             account: account.value!,
             network: network.value,
             payload: extType,
-          }).then((res) => {
+          }).then(res => {
             if (res.error) return Promise.reject(res.error);
             else
               return {
@@ -175,48 +188,60 @@ const sendAction = async () => {
       },
       type: ActivityType.transaction,
       value: txData.toToken.amount,
-      transactionHash: "",
+      transactionHash: '',
     };
     const activityState = new ActivityState();
     signedTx
       .send()
-      .then(async (hash) => {
+      .then(async hash => {
+        trackSendEvents(SendEventType.SendComplete, {
+          network: network.value.name,
+        });
         txActivity.transactionHash = u8aToHex(hash);
         await activityState.addActivities([txActivity], {
           address: network.value.displayAddress(txData.fromAddress),
           network: network.value.name,
         });
+        isSendDone.value = true;
+        if (getCurrentContext() === 'popup') {
+          setTimeout(() => {
+            isProcessing.value = false;
+            router.go(-2);
+          }, 2500);
+        } else {
+          setTimeout(() => {
+            isProcessing.value = false;
+            window.close();
+          }, 1500);
+        }
       })
-      .catch(() => {
+      .catch(error => {
+        isProcessing.value = false;
+        errorMsg.value = error.message;
+        trackSendEvents(SendEventType.SendFailed, {
+          network: network.value.name,
+          error: error.message,
+        });
         txActivity.status = ActivityStatus.failed;
         activityState.addActivities([txActivity], {
           address: network.value.displayAddress(txData.fromAddress),
           network: network.value.name,
         });
       });
-
-    isSendDone.value = true;
-    if (getCurrentContext() === "popup") {
-      setTimeout(() => {
-        isProcessing.value = false;
-        router.go(-2);
-      }, 2500);
-    } else {
-      setTimeout(() => {
-        isProcessing.value = false;
-        window.close();
-      }, 1500);
-    }
   } catch (error: any) {
     isProcessing.value = false;
-    console.error("error", error);
+    console.error(error);
     errorMsg.value = JSON.stringify(error);
+    trackSendEvents(SendEventType.SendFailed, {
+      network: network.value.name,
+      error: errorMsg.value,
+    });
   }
 };
 
 const isHasScroll = () => {
   if (verifyScrollRef.value) {
-    return verifyScrollRef.value.$el.classList.contains("ps--active-y");
+    return verifyScrollRef.value.$el.classList.contains('ps--active-y');
   }
 
   return false;
@@ -224,8 +249,8 @@ const isHasScroll = () => {
 </script>
 
 <style lang="less" scoped>
-@import "~@action/styles/theme.less";
-@import "~@action/styles/custom-scroll.less";
+@import '@action/styles/theme.less';
+@import '@action/styles/custom-scroll.less';
 
 .container {
   width: 100%;
@@ -322,7 +347,8 @@ const isHasScroll = () => {
     }
 
     &.border {
-      box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.05),
+      box-shadow:
+        0px 0px 6px rgba(0, 0, 0, 0.05),
         0px 0px 1px rgba(0, 0, 0, 0.25);
     }
 
@@ -338,8 +364,8 @@ const isHasScroll = () => {
   &__scroll-area {
     position: relative;
     margin: auto;
-    width: calc(~"100% + 53px");
-    height: calc(~"100% - 88px");
+    width: calc(~'100% + 53px');
+    height: calc(~'100% - 88px');
     margin: 0;
     padding: 0 53px 0 0 !important;
     margin-right: -53px;

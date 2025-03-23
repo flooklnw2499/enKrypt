@@ -1,6 +1,7 @@
 import { NetworkNames, SignerType } from "@enkryptcom/types";
 import type { toBN } from "web3-utils";
 import type Web3Eth from "web3-eth";
+import type { Connection as Web3Solana } from "@solana/web3.js";
 
 // eslint-disable-next-line no-shadow
 export enum Events {
@@ -24,9 +25,15 @@ export enum SupportedNetworkName {
   Gnosis = NetworkNames.Gnosis,
   Avalanche = NetworkNames.Avalanche,
   Fantom = NetworkNames.Fantom,
-  Klaytn = NetworkNames.Klaytn,
+  Kaia = NetworkNames.Kaia,
   Aurora = NetworkNames.Aurora,
   Zksync = NetworkNames.ZkSync,
+  Base = NetworkNames.Base,
+  MaticZK = NetworkNames.MaticZK,
+  Blast = NetworkNames.Blast,
+  Telos = NetworkNames.Telos,
+  Rootstock = NetworkNames.Rootstock,
+  Solana = NetworkNames.Solana,
 }
 
 // eslint-disable-next-line no-shadow
@@ -34,6 +41,7 @@ export enum NetworkType {
   EVM = "evm",
   Substrate = "substrate",
   Bitcoin = "bitcoin",
+  Solana = "solana",
 }
 
 export type BN = ReturnType<typeof toBN>;
@@ -93,7 +101,8 @@ export enum WalletIdentifier {
   mew = "mew",
 }
 
-export type APIType = Web3Eth;
+// Web3 (for EVM) or Connection (for Solana)
+export type APIType = Web3Eth | Web3Solana;
 
 export interface QuoteMetaOptions {
   infiniteApproval: boolean;
@@ -118,6 +127,7 @@ export enum ProviderName {
   zerox = "zerox",
   changelly = "changelly",
   rango = "rango",
+  jupiter = "jupiter",
 }
 
 // eslint-disable-next-line no-shadow
@@ -125,6 +135,7 @@ export enum TransactionStatus {
   pending = "pending",
   failed = "failed",
   success = "success",
+  dropped = "dropped",
 }
 
 export interface getQuoteOptions {
@@ -139,6 +150,7 @@ export interface getQuoteOptions {
 export enum TransactionType {
   evm = "evm",
   generic = "generic",
+  solana = "solana",
 }
 
 export interface EVMTransaction {
@@ -150,6 +162,27 @@ export interface EVMTransaction {
   type: TransactionType.evm;
 }
 
+export interface SolanaTransaction {
+  from: string;
+  /** TODO: document what this is for, I think it's just for UI */
+  to: string;
+  kind: "legacy" | "versioned";
+  /** base64 serialized unsigned solana transaction */
+  serialized: string;
+  type: TransactionType.solana;
+  /**
+   * Signatures from swap providers (Rango) so they can verify we haven't tampered with the transaction
+   *
+   * If the transaction has signatures then we can't modify the transaction without invalidating the signatures
+   */
+  thirdPartySignatures: {
+    /** Base58 */
+    pubkey: string;
+    /** uint8 byte array */
+    signature: number[];
+  }[];
+}
+
 export interface GenericTransaction {
   from: string;
   to: string;
@@ -157,7 +190,10 @@ export interface GenericTransaction {
   type: TransactionType.generic;
 }
 
-export type SwapTransaction = EVMTransaction | GenericTransaction;
+export type SwapTransaction =
+  | EVMTransaction
+  | GenericTransaction
+  | SolanaTransaction;
 
 export interface MinMaxResponse {
   minimumFrom: BN;
@@ -176,14 +212,26 @@ export interface ProviderQuoteResponse {
   toTokenAmount: BN;
   fromTokenAmount: BN;
   totalGaslimit: number;
+  /**
+   * Additional native currency that has to be paid for the transaction
+   * For example Changelly bridging fees, Solana rent fees
+   */
   additionalNativeFees: BN;
   provider: ProviderName;
   quote: SwapQuote;
   minMax: MinMaxResponse;
 }
+
+export type StatusOptionTransaction = {
+  /** Transaction hash */
+  hash: string;
+  /** Unix epoch milliseconds `Date.now()` */
+  sentAt: number;
+};
+
 export interface StatusOptions {
   [key: string]: any;
-  transactionHashes: string[];
+  transactions: StatusOptionTransaction[];
 }
 
 export interface StatusOptionsResponse {
@@ -195,9 +243,14 @@ export interface ProviderSwapResponse {
   transactions: SwapTransaction[];
   toTokenAmount: BN;
   fromTokenAmount: BN;
+  /**
+   * Additional native currency that has to be paid for the transaction
+   * For example Changelly bridging fees, Solana rent fees
+   */
   additionalNativeFees: BN;
   provider: ProviderName;
   slippage: string;
+  /** Percentage fee 0-1 (100 * basis points) */
   fee: number;
   getStatusObject: (options: StatusOptions) => Promise<StatusOptionsResponse>;
 }
@@ -223,11 +276,7 @@ export interface TopTokenInfo {
 export abstract class ProviderClass {
   abstract name: string;
 
-  network: SupportedNetworkName;
-
-  constructor(_web3eth: Web3Eth, network: SupportedNetworkName) {
-    this.network = network;
-  }
+  abstract network: SupportedNetworkName;
 
   abstract init(tokenList: TokenType[]): Promise<void>;
 
@@ -237,10 +286,14 @@ export abstract class ProviderClass {
 
   abstract getQuote(
     options: getQuoteOptions,
-    meta: QuoteMetaOptions
+    meta: QuoteMetaOptions,
+    context?: { signal?: AbortSignal },
   ): Promise<ProviderQuoteResponse | null>;
 
-  abstract getSwap(quote: SwapQuote): Promise<ProviderSwapResponse | null>;
+  abstract getSwap(
+    quote: SwapQuote,
+    context?: { signal?: AbortSignal },
+  ): Promise<ProviderSwapResponse | null>;
 
   abstract getStatus(options: StatusOptions): Promise<TransactionStatus>;
 }

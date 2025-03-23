@@ -1,12 +1,10 @@
-import { BaseNetwork } from "@/types/base-network";
-import { ToTokenData } from "@/ui/action/types/token";
-import { EnkryptAccount } from "@enkryptcom/types";
-import {
-  FeeMarketEIP1559Transaction,
-  Transaction as LegacyTransaction,
-} from "@ethereumjs/tx";
-import { GasPriceTypes } from "@/providers/common/types";
-import { GasFeeInfo } from "@/providers/common/types";
+import { BaseNetwork } from '@/types/base-network';
+import type { ToTokenData } from '@/ui/action/types/token';
+import { EnkryptAccount } from '@enkryptcom/types';
+import { FeeMarketEIP1559Transaction, LegacyTransaction } from '@ethereumjs/tx';
+import { GasPriceTypes } from '@/providers/common/types';
+import type { GasFeeInfo } from '@/providers/common/types';
+import type { NFTItemWithCollectionName } from '@/types/nft';
 
 export interface SendTransactionDataType {
   chainId: `0x${string}`;
@@ -16,6 +14,8 @@ export interface SendTransactionDataType {
   data: `0x${string}`;
 }
 export interface VerifyTransactionParams {
+  isNFT: boolean;
+  NFTData?: NFTItemWithCollectionName;
   fromAddress: string;
   fromAddressName: string;
   toAddress: string;

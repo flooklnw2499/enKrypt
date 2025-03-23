@@ -5,7 +5,10 @@
       <h3>Add new {{ network.name_long }} account</h3>
 
       <div class="add-account-form__input" :class="{ focus: isFocus }">
-        <img :src="network.identicon(newAccount?.address || '')" />
+        <img
+          v-if="newAccount?.address"
+          :src="network.identicon(network.displayAddress(newAccount.address))"
+        />
         <input
           ref="addAccountInput"
           v-model="accountName"
@@ -44,24 +47,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, PropType, ref, watch } from "vue";
-import BaseButton from "@action/components/base-button/index.vue";
-import { NodeType } from "@/types/provider";
-import { sendToBackgroundFromAction } from "@/libs/messenger/extension";
-import { InternalMethods } from "@/types/messenger";
-import { EnkryptAccount, KeyRecordAdd, WalletType } from "@enkryptcom/types";
-import Keyring from "@/libs/keyring/public-keyring";
+import { onMounted, PropType, ref, watch } from 'vue';
+import BaseButton from '@action/components/base-button/index.vue';
+import { NodeType } from '@/types/provider';
+import { sendToBackgroundFromAction } from '@/libs/messenger/extension';
+import { InternalMethods } from '@/types/messenger';
+import { EnkryptAccount, KeyRecordAdd, WalletType } from '@enkryptcom/types';
+import Keyring from '@/libs/keyring/public-keyring';
+import BackupState from '@/libs/backup-state';
 
 const isFocus = ref(false);
-const accountName = ref("");
+const accountName = ref('');
 const newAccount = ref<EnkryptAccount | null>(null);
 const isDisabled = ref(true);
 const addAccountInput = ref(null);
 
 defineExpose({ addAccountInput });
 const emit = defineEmits<{
-  (e: "window:close"): void;
-  (e: "update:init"): void;
+  (e: 'window:close'): void;
+  (e: 'update:init'): void;
 }>();
 
 const props = defineProps({
@@ -73,7 +77,7 @@ const props = defineProps({
 const kr = new Keyring();
 const setNewAccountInfo = async () => {
   const keyReq: KeyRecordAdd = {
-    name: "",
+    name: '',
     basePath: props.network.basePath,
     signerType: props.network.signer[0],
     walletType: WalletType.mnemonic,
@@ -83,7 +87,7 @@ const setNewAccountInfo = async () => {
       method: InternalMethods.getNewAccount,
       params: [keyReq],
     }),
-  }).then((res) => {
+  }).then(res => {
     if (res.result) {
       newAccount.value = JSON.parse(res.result) as EnkryptAccount;
     }
@@ -98,7 +102,7 @@ onMounted(() => {
 watch(accountName, async () => {
   isDisabled.value = false;
   if (accountName.value.length < 3) return (isDisabled.value = true);
-  const allNames = await kr.getAccounts().then((all) => all.map((a) => a.name));
+  const allNames = await kr.getAccounts().then(all => all.map(a => a.name));
   if (allNames.includes(accountName.value.trim())) isDisabled.value = true;
 });
 const changeFocus = () => {
@@ -117,17 +121,23 @@ const addAccount = async () => {
       params: [keyReq],
     }),
   }).then(() => {
-    emit("update:init");
-    emit("window:close");
+    const backupState = new BackupState();
+    backupState.backup(false).catch(() => {
+      console.error('Failed to backup');
+    });
+    emit('update:init');
+    emit('window:close');
   });
 };
 </script>
 
 <style lang="less" scoped>
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 .add-account-form {
   background: @white;
-  box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.039), 0px 7px 24px rgba(0, 0, 0, 0.19);
+  box-shadow:
+    0px 3px 6px rgba(0, 0, 0, 0.039),
+    0px 7px 24px rgba(0, 0, 0, 0.19);
   border-radius: 12px;
   padding: 16px;
   box-sizing: border-box;

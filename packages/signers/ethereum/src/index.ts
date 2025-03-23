@@ -1,20 +1,25 @@
 import {
+  privateToPublic,
   ecsign,
   ecrecover,
   fromRpcSig,
   toRpcSig,
-  privateToPublic,
   privateToAddress,
-} from "ethereumjs-util";
+} from "@ethereumjs/util";
 import { mnemonicToSeed } from "bip39";
 import { Errors, SignerInterface, KeyPair } from "@enkryptcom/types";
-import { hexToBuffer, bufferToHex } from "@enkryptcom/utils";
+import {
+  hexToBuffer,
+  bufferToHex,
+  encryptedDataStringToJson,
+  naclDecodeHex,
+  naclDecrypt,
+} from "@enkryptcom/utils";
 import HDkey from "hdkey";
 import { box as naclBox } from "tweetnacl";
 import { encodeBase64 } from "tweetnacl-util";
-import { encryptedDataStringToJson, naclDecodeHex, naclDecrypt } from "./utils";
 
-class Signer implements SignerInterface {
+export class EthereumSigner implements SignerInterface {
   async generate(mnemonic: string, derivationPath = ""): Promise<KeyPair> {
     const seed = await mnemonicToSeed(mnemonic);
     const hdkey = HDkey.fromMasterSeed(seed);
@@ -29,14 +34,14 @@ class Signer implements SignerInterface {
   async verify(
     msgHash: string,
     sig: string,
-    publicKey: string
+    publicKey: string,
   ): Promise<boolean> {
-    const sigdecoded = fromRpcSig(sig);
+    const sigdecoded = fromRpcSig(sig as `0x${string}`);
     const rpubkey = ecrecover(
       hexToBuffer(msgHash),
       sigdecoded.v,
       sigdecoded.r,
-      sigdecoded.s
+      sigdecoded.s,
     );
     return bufferToHex(rpubkey) === publicKey;
   }
@@ -64,4 +69,3 @@ class Signer implements SignerInterface {
     return naclDecrypt({ encryptedData, privateKey: keyPair.privateKey });
   }
 }
-export default Signer;

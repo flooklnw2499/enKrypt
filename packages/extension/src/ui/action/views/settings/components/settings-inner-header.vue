@@ -8,6 +8,7 @@
     <h2 v-show="isSupport">Support</h2>
     <h2 v-show="isPhrase">Recovery phrase</h2>
     <h2 v-show="isReset">Reset wallet?</h2>
+    <h2 v-show="isBackups">Settings backup</h2>
 
     <a class="settings__close" @click="$emit('window:close')">
       <close-icon />
@@ -16,11 +17,11 @@
 </template>
 
 <script setup lang="ts">
-import CloseIcon from "@action/icons/common/close-icon.vue";
-import ArrowBack from "@action/icons/common/arrow-back.vue";
+import CloseIcon from '@action/icons/common/close-icon.vue';
+import ArrowBack from '@action/icons/common/arrow-back.vue';
 defineEmits<{
-  (e: "window:close"): void;
-  (e: "window:back"): void;
+  (e: 'window:close'): void;
+  (e: 'window:back'): void;
 }>();
 defineProps({
   isGeneral: {
@@ -43,11 +44,15 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  isBackups: {
+    type: Boolean,
+    default: false,
+  },
 });
 </script>
 
 <style lang="less">
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 
 .settings {
   &__inner-header {

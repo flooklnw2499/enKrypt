@@ -1,0 +1,57 @@
+{
+  "name": "@enkryptcom/signer-kadena",
+  "version": "0.0.2",
+  "description": "Kadena blockchain signer",
+  "type": "module",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "publishConfig": {
+    "main": "dist/index.cjs",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "lint": "prettier --write .",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=14.15.0"
+  },
+  "dependencies": {
+    "@enkryptcom/utils": "workspace:^",
+    "bip39": "^3.1.0",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@enkryptcom/types": "workspace:^",
+    "@polkadot/util-crypto": "^13.3.1",
+    "@types/hdkey": "^2.1.0",
+    "@types/node": "^22.13.1",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^9.20.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-alias": "^1.1.2",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-module-resolver": "^1.5.0",
+    "prettier": "^3.4.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "8.23.0",
+    "vitest": "^3.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enkryptcom/enKrypt/tree/main/packages/signers/kadena"
+  },
+  "keywords": [],
+  "author": "ae.studio",
+  "license": "MIT"
+}

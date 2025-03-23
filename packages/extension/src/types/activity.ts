@@ -1,22 +1,34 @@
-import { NetworkNames } from "@enkryptcom/types";
-import { BaseTokenOptions } from "./base-token";
+import { NetworkNames } from '@enkryptcom/types';
+import { BaseTokenOptions } from './base-token';
 import {
   TokenType,
   TokenTypeTo,
   StatusOptionsResponse,
-} from "@enkryptcom/swap";
+} from '@enkryptcom/swap';
+import { ICommandResult } from '@kadena/client';
 
-interface BTCInOuts {
+interface BTCIns {
   address: string;
   value: number;
+}
+
+interface BTCOuts extends BTCIns {
+  pkscript: string;
+}
+
+interface SOLRawInfo {
+  blockNumber: number;
+  transactionHash: string;
+  timestamp: number | null | undefined;
+  status: boolean;
 }
 
 interface BTCRawInfo {
   blockNumber: number;
   transactionHash: string;
   timestamp: number | undefined;
-  inputs: BTCInOuts[];
-  outputs: BTCInOuts[];
+  inputs: BTCIns[];
+  outputs: BTCOuts[];
   fee: number;
 }
 
@@ -62,15 +74,33 @@ interface SubstrateRawInfo {
   asset_type: string;
 }
 
+type KadenaRawInfo = ICommandResult;
+
+interface KadenaDBInfo {
+  amount: string;
+  blockHash: string;
+  blockTime: string;
+  chain: number;
+  crossChainAccount: string | null;
+  crossChainId: number | null;
+  fromAccount: string;
+  height: number;
+  idx: number;
+  requestKey: string;
+  toAccount: string;
+  token: string;
+}
+
 enum ActivityStatus {
-  pending = "pending",
-  success = "success",
-  failed = "failed",
+  pending = 'pending',
+  success = 'success',
+  failed = 'failed',
+  dropped = 'dropped',
 }
 
 enum ActivityType {
-  transaction = "transaction",
-  swap = "swap",
+  transaction = 'transaction',
+  swap = 'swap',
 }
 interface SwapRawInfo {
   fromToken: TokenType;
@@ -81,6 +111,8 @@ interface Activity {
   network: NetworkNames;
   from: string;
   to: string;
+  chainId?: string;
+  crossChainId?: number;
   value: string;
   timestamp: number;
   nonce?: string;
@@ -90,11 +122,13 @@ interface Activity {
   status: ActivityStatus;
   type: ActivityType;
   rawInfo?:
-    | EthereumRawInfo
-    | SubstrateRawInfo
-    | SubscanExtrinsicInfo
-    | BTCRawInfo
-    | SwapRawInfo;
+  | EthereumRawInfo
+  | SubstrateRawInfo
+  | SubscanExtrinsicInfo
+  | BTCRawInfo
+  | SwapRawInfo
+  | KadenaRawInfo
+  | SOLRawInfo;
 }
 
 export {
@@ -106,4 +140,7 @@ export {
   SubscanExtrinsicInfo,
   BTCRawInfo,
   SwapRawInfo,
+  KadenaRawInfo,
+  KadenaDBInfo,
+  SOLRawInfo,
 };

@@ -26,23 +26,17 @@
 </template>
 
 <script setup lang="ts">
-import { PropType } from "vue";
-import SwitchArrow from "@action/icons/header/switch_arrow.vue";
-import TimeIcon from "@action/icons/fee/time-icon.vue";
-import { GasFeeInfo, GasPriceTypes } from "@/providers/common/types";
-import { FeeDescriptions } from "@/providers/ethereum/libs/transaction/gas-utils";
+import { PropType } from 'vue';
+import SwitchArrow from '@action/icons/header/switch_arrow.vue';
+import TimeIcon from '@action/icons/fee/time-icon.vue';
+import { GasFeeInfo, GasPriceTypes } from '@/providers/common/types';
+import { FeeDescriptions } from '@/providers/ethereum/libs/transaction/gas-utils';
 
 const emit = defineEmits<{
-  (e: "openPopup"): void;
+  (e: 'openPopup'): void;
 }>();
 
 defineProps({
-  toggleSelect: {
-    type: Function,
-    default: () => {
-      return null;
-    },
-  },
   fee: {
     type: Object as PropType<GasFeeInfo>,
     default: () => {
@@ -63,7 +57,7 @@ defineProps({
 </script>
 
 <style lang="less" scoped>
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 
 .send-fee-select {
   min-height: 40px;
@@ -74,7 +68,7 @@ defineProps({
   border: 1px solid @gray02;
   box-sizing: border-box;
   border-radius: 10px;
-  width: calc(~"100% - 64px");
+  width: calc(~'100% - 64px');
   padding: 10px 16px;
   display: flex;
   justify-content: flex-start;

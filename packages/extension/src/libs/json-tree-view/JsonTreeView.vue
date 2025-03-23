@@ -3,25 +3,30 @@
     :class="[{ 'root-item': true, dark: colorScheme === 'dark' }]"
     :data="parsed"
     :max-depth="maxDepth"
+    :root-key-string="rootKeyString"
     @selected="itemSelected"
   />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import JsonTreeViewItem from "./JsonTreeViewItem.vue";
-import { ItemType, type ValueTypes, type ItemData } from "./types";
+import { computed } from 'vue';
+import JsonTreeViewItem from './JsonTreeViewItem.vue';
+import { ItemType, type ValueTypes, type ItemData } from './types';
 
 const props = defineProps({
+  rootKeyString: {
+    type: String,
+    default: 'Sign typed data',
+  },
   data: {
     type: String,
     required: false,
-    default: "{}",
+    default: '{}',
   },
   rootKey: {
     type: String,
     required: false,
-    default: "/",
+    default: '/',
   },
   maxDepth: {
     type: Number,
@@ -31,17 +36,17 @@ const props = defineProps({
   colorScheme: {
     type: String,
     required: false,
-    default: "light",
-    validator: (value: string) => ["light", "dark"].indexOf(value) !== -1,
+    default: 'light',
+    validator: (value: string) => ['light', 'dark'].indexOf(value) !== -1,
   },
 });
 
 const emit = defineEmits<{
-  (e: "selected", data: unknown): void;
+  (e: 'selected', data: unknown): void;
 }>();
 
 function itemSelected(data: unknown): void {
-  emit("selected", data);
+  emit('selected', data);
 }
 
 function build(
@@ -49,7 +54,7 @@ function build(
   value: ValueTypes,
   depth: number,
   path: string,
-  includeKey: boolean
+  includeKey: boolean,
 ): ItemData {
   if (value instanceof Object) {
     if (value instanceof Array) {
@@ -59,8 +64,8 @@ function build(
           element,
           depth + 1,
           includeKey ? `${path}${key}[${index}].` : `${path}`,
-          false
-        )
+          false,
+        ),
       );
       return {
         key,
@@ -78,8 +83,8 @@ function build(
         childValue,
         depth + 1,
         includeKey ? `${path}${key}.` : `${path}`,
-        true
-      )
+        true,
+      ),
     );
     return {
       key,
@@ -105,13 +110,13 @@ const parsed = computed((): ItemData => {
   if (json != null && json != undefined) {
     const data = JSON.parse(json);
     if (data instanceof Object) {
-      return build(props.rootKey, { ...data }, 0, "", true);
+      return build(props.rootKey, { ...data }, 0, '', true);
     }
   }
   return {
     key: props.rootKey,
     type: ItemType.VALUE,
-    path: "",
+    path: '',
     depth: 0,
     value: props.data,
   };

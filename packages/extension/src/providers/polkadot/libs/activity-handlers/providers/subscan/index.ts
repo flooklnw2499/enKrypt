@@ -1,45 +1,52 @@
-import cacheFetch from "@/libs/cache-fetch";
-import MarketData from "@/libs/market-data";
-import { toBase } from "@enkryptcom/utils";
+import cacheFetch from '@/libs/cache-fetch';
+import MarketData from '@/libs/market-data';
+import { toBase } from '@enkryptcom/utils';
 import {
   Activity,
   ActivityStatus,
   ActivityType,
   SubstrateRawInfo,
-} from "@/types/activity";
-import { BaseNetwork } from "@/types/base-network";
-import { numberToHex } from "web3-utils";
-import { NetworkEndpoints } from "./configs";
+} from '@/types/activity';
+import { BaseNetwork } from '@/types/base-network';
+import { numberToHex } from 'web3-utils';
+import { NetworkEndpoints } from './configs';
 const TTL = 30000;
 const getAddressActivity = async (
   address: string,
-  endpoint: string
+  endpoint: string,
 ): Promise<SubstrateRawInfo[]> => {
   return cacheFetch(
     {
-      url: `${endpoint}api/scan/transfers?address=${address}&row=50`,
+      url: `${endpoint}api/v2/scan/transfers`,
+      post: {
+        address: address,
+        row: 50,
+      },
+      headers: {
+        'Content-Type': 'application/json',
+      },
     },
-    TTL
-  ).then((res) => {
-    if (res.message !== "Success") return [];
+    TTL,
+  ).then(res => {
+    if (res.message !== 'Success') return [];
     return res.data.transfers ? res.data.transfers : [];
   });
 };
 export default async (
   network: BaseNetwork,
-  address: string
+  address: string,
 ): Promise<Activity[]> => {
   const enpoint =
     NetworkEndpoints[network.name as keyof typeof NetworkEndpoints];
   const activities = await getAddressActivity(address, enpoint);
-  let price = "0";
+  let price = '0';
   if (network.coingeckoID) {
     const marketData = new MarketData();
     await marketData
       .getTokenPrice(network.coingeckoID)
-      .then((mdata) => (price = mdata || "0"));
+      .then(mdata => (price = mdata || '0'));
   }
-  return activities.map((activity) => {
+  return activities.map(activity => {
     return {
       from: activity.from,
       to: activity.to,
@@ -56,10 +63,10 @@ export default async (
         icon: network.icon,
         name: network.currencyNameLong,
         symbol:
-          activity.asset_symbol !== ""
+          activity.asset_symbol !== ''
             ? activity.asset_symbol
             : network.currencyName,
-        price: price,
+        price: activity.asset_symbol === network.currencyName ? price : '0',
       },
     };
   });

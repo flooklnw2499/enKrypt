@@ -27,31 +27,42 @@
   </div>
 </template>
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
-import BaseButton from "@action/components/base-button/index.vue";
-import BaseInput from "@action/components/base-input/index.vue";
-import { useRouter } from "vue-router";
-import { routes } from "../restore-wallet/routes";
-import initializeWallet from "@/libs/utils/initialize-wallet";
-import { useRestoreStore } from "./store";
+import { onMounted, ref, computed, unref } from 'vue';
+import BaseButton from '@action/components/base-button/index.vue';
+import BaseInput from '@action/components/base-input/index.vue';
+import { useRouter } from 'vue-router';
+import { routes } from '../restore-wallet/routes';
+import { onboardInitializeWallets } from '@/libs/utils/initialize-wallet';
+import { useRestoreStore } from './store';
 const store = useRestoreStore();
 const router = useRouter();
 
-const typePassword = ref("");
+const typePassword = ref('');
 const isInitializing = ref(false);
 const nextAction = () => {
   if (!isDisabled.value) {
     isInitializing.value = true;
-    initializeWallet(store.mnemonic, store.password).then(() => {
-      isInitializing.value = false;
-      router.push({
-        name: routes.walletReady.name,
+    onboardInitializeWallets(unref(store.mnemonic), unref(store.password))
+      .then(res => {
+        isInitializing.value = false;
+        if (res.backupsFound) {
+          router.push({
+            name: routes.backupDetected.name,
+          });
+        } else {
+          router.push({
+            name: routes.walletReady.name,
+          });
+        }
+      })
+      .catch(error => {
+        isInitializing.value = false;
+        console.error('Wallet initialization failed:', error);
       });
-    });
   }
 };
 const isDisabled = computed(() => {
-  return typePassword.value !== store.password || isInitializing.value;
+  return typePassword.value !== unref(store.password) || isInitializing.value;
 });
 const passwordUpdated = (value: string) => {
   typePassword.value = value.trim();
@@ -69,7 +80,7 @@ onMounted(() => {
 </script>
 
 <style lang="less">
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 
 .type-password {
   width: 100%;

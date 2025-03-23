@@ -1,5 +1,5 @@
 export enum StorageKeys {
-  networkInfo = "network-info",
+  networkInfo = 'network-info',
 }
 
 export interface NetworkStorageElement {
@@ -8,4 +8,10 @@ export interface NetworkStorageElement {
 
 export interface IState {
   networks: NetworkStorageElement[];
+  newNetworksVersion: string;
+  enabledTestNetworks: NetworkStorageElement[];
+  newUsedFeatures: {
+    networks: string[];
+    swap: string[];
+  };
 }

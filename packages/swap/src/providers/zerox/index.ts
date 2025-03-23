@@ -1,6 +1,5 @@
 import type Web3Eth from "web3-eth";
 import { numberToHex, toBN } from "web3-utils";
-import fetch from "node-fetch";
 import {
   EVMTransaction,
   getQuoteOptions,
@@ -31,7 +30,7 @@ import {
   getAllowanceTransactions,
   TOKEN_AMOUNT_INFINITY_AND_BEYOND,
 } from "../../utils/approvals";
-import estimateGasList from "../../common/estimateGasList";
+import estimateEVMGasList from "../../common/estimateGasList";
 import { isEVMAddress } from "../../utils/common";
 
 const supportedNetworks: {
@@ -65,9 +64,13 @@ const supportedNetworks: {
     approvalAddress: "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
     chainId: "42161",
   },
+  [SupportedNetworkName.Base]: {
+    approvalAddress: "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+    chainId: "1101",
+  },
 };
 
-const BASE_URL = "https://partners.mewapi.io/zerox/";
+const BASE_URL = "https://partners.mewapi.io/zeroxv2";
 
 class ZeroX extends ProviderClass {
   tokenList: TokenType[];
@@ -83,7 +86,7 @@ class ZeroX extends ProviderClass {
   toTokens: ProviderToTokenResponse;
 
   constructor(web3eth: Web3Eth, network: SupportedNetworkName) {
-    super(web3eth, network);
+    super();
     this.network = network;
     this.tokenList = [];
     this.web3eth = web3eth;
@@ -110,7 +113,7 @@ class ZeroX extends ProviderClass {
 
   static isSupported(network: SupportedNetworkName) {
     return Object.keys(supportedNetworks).includes(
-      network as unknown as string
+      network as unknown as string,
     );
   }
 
@@ -134,11 +137,11 @@ class ZeroX extends ProviderClass {
   private getZeroXSwap(
     options: getQuoteOptions,
     meta: QuoteMetaOptions,
-    accurateEstimate: boolean
+    accurateEstimate: boolean,
   ): Promise<ZeroXSwapResponse | null> {
     if (
       !ZeroX.isSupported(
-        options.toToken.networkInfo.name as SupportedNetworkName
+        options.toToken.networkInfo.name as SupportedNetworkName,
       ) ||
       this.network !== options.toToken.networkInfo.name
     )
@@ -151,7 +154,7 @@ class ZeroX extends ProviderClass {
       sellToken: options.fromToken.address,
       buyToken: options.toToken.address,
       sellAmount: options.amount.toString(),
-      takerAddress: options.fromAddress,
+      taker: options.fromAddress,
       slippagePercentage: (
         parseFloat(meta.slippage ? meta.slippage : DEFAULT_SLIPPAGE) / 100
       ).toString(),
@@ -162,9 +165,8 @@ class ZeroX extends ProviderClass {
       affiliateAddress: feeConfig ? feeConfig.referrer : "",
     });
     return fetch(
-      `${BASE_URL}${
-        supportedNetworks[this.network].chainId
-      }/swap/v1/quote?${params.toString()}`
+      `${BASE_URL}/swap/allowance-holder/quote?chainId=${supportedNetworks[this.network].chainId
+      }&${params.toString()}`,
     )
       .then((res) => res.json())
       .then(async (response: ZeroXResponseType) => {
@@ -188,15 +190,15 @@ class ZeroX extends ProviderClass {
         transactions.push({
           from: options.fromAddress,
           gasLimit: GAS_LIMITS.swap,
-          to: response.to,
-          value: numberToHex(response.value),
-          data: response.data,
+          to: response.transaction.to,
+          value: numberToHex(response.transaction.value),
+          data: response.transaction.data,
           type: TransactionType.evm,
         });
         if (accurateEstimate) {
-          const accurateGasEstimate = await estimateGasList(
+          const accurateGasEstimate = await estimateEVMGasList(
             transactions,
-            this.network
+            this.network,
           );
           if (accurateGasEstimate) {
             if (accurateGasEstimate.isError) return null;
@@ -219,7 +221,7 @@ class ZeroX extends ProviderClass {
 
   getQuote(
     options: getQuoteOptions,
-    meta: QuoteMetaOptions
+    meta: QuoteMetaOptions,
   ): Promise<ProviderQuoteResponse | null> {
     return this.getZeroXSwap(options, meta, false).then(async (res) => {
       if (!res) return null;
@@ -236,7 +238,7 @@ class ZeroX extends ProviderClass {
         totalGaslimit: res.transactions.reduce(
           (total: number, curVal: EVMTransaction) =>
             total + toBN(curVal.gasLimit).toNumber(),
-          0
+          0,
         ),
         minMax: await this.getMinMaxAmount(),
       };
@@ -258,7 +260,7 @@ class ZeroX extends ProviderClass {
         slippage: quote.meta.slippage || DEFAULT_SLIPPAGE,
         fee: feeConfig * 100,
         getStatusObject: async (
-          options: StatusOptions
+          options: StatusOptions,
         ): Promise<StatusOptionsResponse> => ({
           options,
           provider: this.name,
@@ -269,8 +271,8 @@ class ZeroX extends ProviderClass {
   }
 
   getStatus(options: StatusOptions): Promise<TransactionStatus> {
-    const promises = options.transactionHashes.map((hash) =>
-      this.web3eth.getTransactionReceipt(hash)
+    const promises = options.transactions.map(({ hash }) =>
+      this.web3eth.getTransactionReceipt(hash),
     );
     return Promise.all(promises).then((receipts) => {
       // eslint-disable-next-line no-restricted-syntax

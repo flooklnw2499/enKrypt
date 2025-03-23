@@ -1,4 +1,4 @@
-import { GasPriceTypes } from "@/providers/common/types";
+import { GasPriceTypes } from '@/providers/common/types';
 
 interface FeeType {
   fast: {
@@ -12,13 +12,15 @@ interface FeeType {
   };
 }
 const SSFeeHandler = async (
-  url: string
+  url: string,
 ): Promise<Record<GasPriceTypes, number>> => {
   return fetch(url)
-    .then((res) => res.json())
+    .then(res => res.json())
     .then((json: FeeType) => {
       if (json.fast.satsPerKiloByte < 0)
         json.fast.satsPerKiloByte = json.average.satsPerKiloByte;
+      if (json.average.satsPerKiloByte < 0)
+        json.average.satsPerKiloByte = json.slow.satsPerKiloByte;
       return {
         [GasPriceTypes.FASTEST]:
           Math.ceil(json.fast.satsPerKiloByte / 1024) + 5,

@@ -3,18 +3,18 @@ import {
   MessageMethod,
   EmitEvent,
   ProviderConnectInfo,
-} from "../types";
+} from '../types';
 import {
   EnkryptProviderEventMethods,
   EthereumProvider,
   handleIncomingMessage as handleIncomingMessageType,
-} from "@/types/provider";
-import { getError } from "../../../libs/error";
-import { RPCRequestType } from "@enkryptcom/types";
+} from '@/types/provider';
+import { getError } from '../../../libs/error';
+import { RPCRequestType } from '@enkryptcom/types';
 const subscriptionMap: Record<string, any> = {};
 const handleIncomingMessage: handleIncomingMessageType = (
   provider,
-  message
+  message,
 ): void => {
   try {
     const _provider = provider as EthereumProvider;
@@ -34,7 +34,7 @@ const handleIncomingMessage: handleIncomingMessageType = (
       } else {
         _provider.emit(
           EmitEvent.disconnect,
-          getError(jsonMsg.params[1] as number)
+          getError(jsonMsg.params[1] as number),
         );
       }
     } else if (jsonMsg.method === MessageMethod.changeChainId) {
@@ -59,18 +59,17 @@ const handleIncomingMessage: handleIncomingMessageType = (
         type: jsonMsg.method,
       });
     } else if (
-      jsonMsg.method === EnkryptProviderEventMethods.persistentEvents
+      (jsonMsg.method as EnkryptProviderEventMethods) ===
+      EnkryptProviderEventMethods.persistentEvents
     ) {
       const initialEvent = jsonMsg.params[0] as RPCRequestType;
-      if (initialEvent.method === "eth_subscribe") {
+      if (initialEvent.method === 'eth_subscribe') {
         const initialRes = jsonMsg.params[1];
         const newRes = jsonMsg.params[2];
         subscriptionMap[JSON.parse(newRes)] = JSON.parse(initialRes);
       } else {
         console.error(`Unable to process persistentEvent:${message}`);
       }
-    } else {
-      console.error(`Unable to process message:${message}`);
     }
   } catch (e) {
     console.error(e);

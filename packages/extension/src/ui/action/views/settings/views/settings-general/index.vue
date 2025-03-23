@@ -29,6 +29,33 @@
       <p>Prevent conflict with Polkadot-js extension</p>
     </div>
 
+    <settings-switch
+      title="Turn on Unisat injection"
+      :is-checked="isUnisatEnabled"
+      @update:check="toggleUnisatEnable"
+    />
+    <div class="settings__label">
+      <p>Enable Enkrypt act like Unisat wallet for dapps</p>
+    </div>
+
+    <settings-switch
+      title="Disable Amplitude Events"
+      :is-checked="!isMetricsEnabled"
+      @update:check="toggleMetricsEnabled"
+    />
+    <div class="settings__label">
+      <p>
+        MEW uses Amplitude events to improve Enkrypt. No identifiable
+        information is collected.
+      </p>
+    </div>
+    <settings-button title="Settings backup" @click="$emit('open:backups')" />
+    <div class="settings__label">
+      <p>
+        Save your current list of accounts across all networks, so you don't
+        need to re-generate them.
+      </p>
+    </div>
     <!-- <base-select
       :select="selecTimer"
       title="Auto-lock timer"
@@ -43,20 +70,31 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import SettingsInnerHeader from "@action/views/settings/components/settings-inner-header.vue";
+import { onMounted, ref } from 'vue';
+import SettingsInnerHeader from '@action/views/settings/components/settings-inner-header.vue';
 // import BaseSelect from "@action/components/base-select/index.vue";
-import SettingsSwitch from "@action/views/settings/components/settings-switch.vue";
-import SettingsState from "@/libs/settings-state";
-import { SettingsType } from "@/libs/settings-state/types";
+import SettingsButton from '@action/views/settings/components/settings-button.vue';
+import SettingsSwitch from '@action/views/settings/components/settings-switch.vue';
+import SettingsState from '@/libs/settings-state';
+import { SettingsType } from '@/libs/settings-state/types';
+import { optOutofMetrics } from '@/libs/metrics';
 
 const settingsState = new SettingsState();
 const isEthereumDisabled = ref(false);
 const isPolkadotjsDisabled = ref(false);
+const isUnisatEnabled = ref(true);
+const isMetricsEnabled = ref(true);
+
+defineEmits<{
+  (e: 'open:backups'): void;
+}>();
+
 onMounted(async () => {
   const allSettings: SettingsType = await settingsState.getAllSettings();
   isEthereumDisabled.value = allSettings.evm.inject.disabled;
   isPolkadotjsDisabled.value = !allSettings.substrate.injectPolkadotjs;
+  isUnisatEnabled.value = allSettings.btc.injectUnisat;
+  isMetricsEnabled.value = allSettings.enkrypt.isMetricsEnabled;
 });
 const toggleEthereumDisable = async (isChecked: boolean) => {
   const evmSettings = await settingsState.getEVMSettings();
@@ -65,16 +103,31 @@ const toggleEthereumDisable = async (isChecked: boolean) => {
     timestamp: new Date().getTime(),
   };
   await settingsState.setEVMSettings(evmSettings);
+  isEthereumDisabled.value = isChecked;
 };
 const togglePjsDisable = async (isChecked: boolean) => {
   const subSettings = await settingsState.getSubstrateSettings();
   subSettings.injectPolkadotjs = !isChecked;
   await settingsState.setSubstrateSettings(subSettings);
+  isPolkadotjsDisabled.value = isChecked;
+};
+const toggleUnisatEnable = async (isChecked: boolean) => {
+  const btcSettings = await settingsState.getBtcSettings();
+  btcSettings.injectUnisat = isChecked;
+  await settingsState.setBtcSettings(btcSettings);
+  isUnisatEnabled.value = isChecked;
+};
+const toggleMetricsEnabled = async (isChecked: boolean) => {
+  const enkryptSettings = await settingsState.getEnkryptSettings();
+  enkryptSettings.isMetricsEnabled = !isChecked;
+  await settingsState.setEnkryptSettings(enkryptSettings);
+  optOutofMetrics(isChecked);
+  isMetricsEnabled.value = !isChecked;
 };
 </script>
 
 <style lang="less">
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 
 .settings {
   &__label {

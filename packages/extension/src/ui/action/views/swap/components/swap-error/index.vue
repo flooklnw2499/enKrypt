@@ -21,23 +21,44 @@
         class="swap-looking__animation"
       />
       <Vue3Lottie
-        v-else-if="error === SwapError.NETWORK_NOT_SUPPORTED"
+        v-else-if="
+          error === SwapError.NETWORK_NOT_SUPPORTED ||
+          error === SwapError.TEMP_NOT_SUPPORTED
+        "
         :loop="true"
         :animation-data="LottieWarning"
         class="swap-looking__animation"
       />
 
-      <h3 v-if="error !== SwapError.NETWORK_NOT_SUPPORTED">
+      <h3
+        v-if="
+          error !== SwapError.NETWORK_NOT_SUPPORTED &&
+          error !== SwapError.TEMP_NOT_SUPPORTED
+        "
+      >
         {{ Errors[error!].title }}
       </h3>
-      <p v-if="error !== SwapError.NETWORK_NOT_SUPPORTED">
+      <p
+        v-if="
+          error !== SwapError.NETWORK_NOT_SUPPORTED &&
+          error !== SwapError.TEMP_NOT_SUPPORTED
+        "
+      >
         {{ Errors[error!].description }}
       </p>
 
       <h3 v-if="error === SwapError.NETWORK_NOT_SUPPORTED">
         Coming soon to<br />{{ networkName }}
       </h3>
-      <p v-if="error === SwapError.NETWORK_NOT_SUPPORTED">
+      <h3 v-if="error === SwapError.TEMP_NOT_SUPPORTED">
+        {{ networkName }}<br />is temporarily not supported
+      </h3>
+      <p
+        v-if="
+          error === SwapError.NETWORK_NOT_SUPPORTED ||
+          error === SwapError.TEMP_NOT_SUPPORTED
+        "
+      >
         Can't wait to swap? Try swapping on {{ supportedNets }}.
       </p>
     </div>
@@ -45,26 +66,27 @@
 </template>
 
 <script setup lang="ts">
-import CloseIcon from "@action/icons/common/close-icon.vue";
-import LottieWarning from "@action/assets/animation/warning.json";
-import LottieError from "@action/assets/animation/error-big.json";
-import { Vue3Lottie } from "vue3-lottie";
-import { getSupportedNetworks } from "@enkryptcom/swap";
-import { SwapError, Errors } from "./types";
+import CloseIcon from '@action/icons/common/close-icon.vue';
+import LottieWarning from '@action/assets/animation/warning.json';
+import LottieError from '@action/assets/animation/error-big.json';
+import { Vue3Lottie } from 'vue3-lottie';
+import { getSupportedNetworks } from '@enkryptcom/swap';
+import { SwapError, Errors } from './types';
 
 interface IProps {
   error?: SwapError;
   networkName: string;
   close: () => void;
 }
+const prop = defineProps<IProps>();
 const supportedNets = getSupportedNetworks()
-  .map((net) => net.name)
-  .join(", ");
-defineProps<IProps>();
+  .map(net => net.name)
+  .filter(name => name !== prop.networkName)
+  .join(', ');
 </script>
 
 <style lang="less" scoped>
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 .swap-looking {
   width: 100%;
   height: auto;
@@ -72,7 +94,8 @@ defineProps<IProps>();
 
   &__wrap {
     background: @white;
-    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.039),
+    box-shadow:
+      0px 3px 6px rgba(0, 0, 0, 0.039),
       0px 7px 24px rgba(0, 0, 0, 0.19);
     border-radius: 12px;
     box-sizing: border-box;
@@ -107,7 +130,7 @@ defineProps<IProps>();
 
   &__container {
     width: 100%;
-    height: 600px;
+    height: 100%;
     left: 0px;
     top: 0px;
     position: fixed;

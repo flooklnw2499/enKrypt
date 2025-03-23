@@ -42,26 +42,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import LogoBig from "@action/icons/common/logo-big.vue";
-import BaseButton from "@action/components/base-button/index.vue";
-import LockScreenPasswordInput from "./components/lock-screen-password-input.vue";
-import LockScreenForgot from "./components/lock-screen-forgot.vue";
-import LockScreenTimer from "./components/lock-screen-timer.vue";
-import { sendToBackgroundFromAction } from "@/libs/messenger/extension";
-import { InternalMethods } from "@/types/messenger";
-import { computed } from "@vue/reactivity";
-import SwapLookingAnimation from "@action/icons/swap/swap-looking-animation.vue";
-import BitcoinNetworks from "@/providers/bitcoin/networks";
-import KeyRing from "@/libs/keyring/keyring";
-import { NetworkNames, WalletType } from "@enkryptcom/types";
-import { getAccountsByNetworkName } from "@/libs/utils/accounts";
+import { ref } from 'vue';
+import LogoBig from '@action/icons/common/logo-big.vue';
+import BaseButton from '@action/components/base-button/index.vue';
+import LockScreenPasswordInput from './components/lock-screen-password-input.vue';
+import LockScreenForgot from './components/lock-screen-forgot.vue';
+import LockScreenTimer from './components/lock-screen-timer.vue';
+import { sendToBackgroundFromAction } from '@/libs/messenger/extension';
+import { InternalMethods } from '@/types/messenger';
+import { computed } from 'vue';
+import SwapLookingAnimation from '@action/icons/swap/swap-looking-animation.vue';
+import { trackGenericEvents } from '@/libs/metrics';
+import { GenericEvents } from '@/libs/metrics/types';
 
 const emit = defineEmits<{
-  (e: "update:init"): void;
+  (e: 'update:init'): void;
 }>();
 
-const password = ref(process.env.PREFILL_PASSWORD!);
+const password = ref(__PREFILL_PASSWORD__!);
 const isDisabled = computed(() => {
   return password.value.length < 5 || isUnlocking.value;
 });
@@ -75,37 +73,19 @@ const unlockAction = async () => {
   const unlockStatus = await sendToBackgroundFromAction({
     message: JSON.stringify({
       method: InternalMethods.unlock,
-      params: [password.value.trim()],
+      params: [password.value.trim(), true],
     }),
   });
   if (unlockStatus.error) {
     isError.value = true;
     isUnlocking.value = false;
+    trackGenericEvents(GenericEvents.login_error);
   } else {
     isError.value = false;
-
-    // Add bitcoin if not added.
-    const bitcoinAccounts = await getAccountsByNetworkName(
-      NetworkNames.Bitcoin
-    );
-
-    if (bitcoinAccounts.length == 0) {
-      const privateKeyring = new KeyRing();
-      await privateKeyring.unlock(password.value.trim());
-
-      await privateKeyring.saveNewAccount({
-        basePath: BitcoinNetworks.bitcoin.basePath,
-        name: "Bitcoin Account 1",
-        signerType: BitcoinNetworks.bitcoin.signer[0],
-        walletType: WalletType.mnemonic,
-      });
-
-      privateKeyring.lock();
-    }
-
-    password.value = "";
-    emit("update:init");
+    password.value = '';
+    emit('update:init');
     setTimeout(() => (isUnlocking.value = false), 750);
+    trackGenericEvents(GenericEvents.login_success);
   }
 };
 const forgotAction = () => {
@@ -119,7 +99,7 @@ const toggleForgot = () => {
   isForgot.value = !isForgot.value;
 };
 const resetAction = () => {
-  password.value = "";
+  password.value = '';
 };
 const closeLockedAction = () => {
   isLocked.value = false;
@@ -127,7 +107,7 @@ const closeLockedAction = () => {
 </script>
 
 <style lang="less" scoped>
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 .lock-screen {
   width: 100%;
   height: 100%;

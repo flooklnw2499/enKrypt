@@ -8,11 +8,10 @@
     />
     <img
       v-else
-      :src="network.identicon(address)"
+      :src="network.identicon(network.displayAddress(address))"
       class="send-process-account__img avatar"
       alt=""
     />
-
     <div class="send-process-account__name">
       <p>To</p>
       <h4>{{ name ? name : network.displayAddress(address) }}</h4>
@@ -26,14 +25,14 @@
 </template>
 
 <script setup lang="ts">
-import { BaseNetwork } from "@/types/base-network";
-import { PropType } from "vue";
+import { BaseNetwork } from '@/types/base-network';
+import { PropType } from 'vue';
 
 defineProps({
   address: {
     type: String,
     default: () => {
-      return "";
+      return '';
     },
   },
   name: {
@@ -58,7 +57,7 @@ defineProps({
 </script>
 
 <style lang="less">
-@import "~@action/styles/theme.less";
+@import '@action/styles/theme.less';
 
 .send-process-account {
   text-decoration: none;
